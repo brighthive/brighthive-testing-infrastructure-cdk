@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      target: development
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+    environment:
+      - PYTHONPATH=/app/src
+    command: python -m brighthive_testing_cdk.main
+    env_file:
+      - .env
+
+  test:
+    build:
+      context: .
+      target: development
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./htmlcov:/app/htmlcov
+    environment:
+      - PYTHONPATH=/app/src
+    command: pytest --cov=brighthive_testing_cdk --cov-report=html
+    env_file:
+      - .env
+

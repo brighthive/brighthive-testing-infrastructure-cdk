@@ -1,0 +1,67 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-docstring-first
+      - id: debug-statements
+      - id: mixed-line-ending
+      - id: name-tests-test
+        args: ['--pytest-test-first']
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [
+          types-requests,
+          types-aiofiles,
+        ]
+        args: [--strict, --ignore-missing-imports]
+
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.8.0
+    hooks:
+      - id: bandit
+        args: ['-c', 'pyproject.toml']
+        additional_dependencies: ['bandit[toml]']
+
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.20.2
+    hooks:
+      - id: validate-pyproject
+        files: pyproject.toml
+        additional_dependencies: ['validate-pyproject-schema-store[all]']
+
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: pytest-check
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: no-commit-to-main
+        name: Don't commit to main
+        entry: bash -c 'if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then echo "Direct commits to main are not allowed"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]

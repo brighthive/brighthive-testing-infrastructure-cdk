@@ -1,0 +1,73 @@
+# Environment Configuration for BrightBot Testing Infrastructure
+# Supports: DEV, STAGING, PROD
+
+DEV:
+  account: "TBD"  # AWS account ID - UPDATE THIS
+  region: "us-east-1"
+
+  vpc:
+    cidr: "10.50.0.0/16"
+    max_azs: 3
+    nat_gateways: 1  # Cost optimization
+
+  data_lake:
+    bucket_prefix: "brightbot-test"
+    retention_days: 30
+
+  redshift:
+    node_type: "ra3.xlplus"
+    number_of_nodes: 2
+    database_name: "brightbot_test"
+    master_username: "admin"
+
+  ecs:
+    max_task_count: 1000
+    cpu: 2048
+    memory: 4096
+
+  emr:
+    release_label: "emr-7.0.0"
+    instance_type: "c6i.4xlarge"
+    instance_count: 10
+
+  cost_tracking:
+    daily_report_enabled: true
+    slack_webhook_ssm_key: "/brightbot/testing/slack-webhook"
+
+  tags:
+    Project: "brightbot-testing"
+    Environment: "dev"
+    ManagedBy: "cdk"
+    CostCenter: "engineering"
+    Lifecycle: "persistent"
+    JiraTicket: "BH-107"
+
+STAGING:
+  account: "TBD"  # AWS account ID - UPDATE THIS
+  region: "us-east-1"
+
+  vpc:
+    cidr: "10.51.0.0/16"
+    max_azs: 3
+    nat_gateways: 2
+
+  tags:
+    Project: "brightbot-testing"
+    Environment: "staging"
+    ManagedBy: "cdk"
+    JiraTicket: "BH-107"
+
+PROD:
+  account: "TBD"  # AWS account ID - UPDATE THIS
+  region: "us-east-1"
+
+  vpc:
+    cidr: "10.52.0.0/16"
+    max_azs: 3
+    nat_gateways: 3
+
+  tags:
+    Project: "brightbot-testing"
+    Environment: "prod"
+    ManagedBy: "cdk"
+    JiraTicket: "BH-107"
