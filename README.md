@@ -1,6 +1,56 @@
 # BrightHive Testing Infrastructure CDK
 
-AWS CDK infrastructure for BrightBot scenario testing at production scale
+AWS CDK infrastructure for testing BrightBot refactoring by recreating 9 production scenarios with REAL data.
+
+**Related Jira Ticket:** [BH-107](https://brighthiveio.atlassian.net/browse/BH-107)
+
+## Overview
+
+This repository contains AWS CDK (Cloud Development Kit) infrastructure code to create testing environments for validating BrightBot refactoring. The infrastructure recreates production scenarios at scale to compare BEFORE and AFTER performance using identical test conditions.
+
+### 9 Production Scenarios
+
+1. **S01**: Massive Token Overflow (10B records → 6K tokens)
+2. **S02**: Multi-Source Conflict Resolution (3B records)
+3. **S03**: Warehouse Context Generation (1,000 tables)
+4. **S11**: Schema Evolution Detection (50 sources)
+5. **S12**: Distributed Trillion-Record Search (1T records, 50TB)
+6. **S13**: Cross-Asset Insight Discovery
+7. **S14**: Natural Language Query (<5s latency)
+8. **S15**: PII Detection (GDPR compliance)
+9. **S16**: Zombie Table Detection (cost optimization)
+
+## CDK Commands
+
+```bash
+# Bootstrap CDK (first time only)
+make cdk-bootstrap ENV=DEV
+
+# Synthesize CloudFormation templates
+make cdk-synth ENV=DEV
+
+# View differences with deployed stacks
+make cdk-diff ENV=DEV
+
+# Deploy infrastructure (CAUTION: Creates AWS resources!)
+make cdk-deploy ENV=DEV
+
+# Deploy specific stack
+make cdk-deploy ENV=DEV STACK=BrightBot-DEV-VPC
+
+# Destroy infrastructure (CAUTION: Deletes all resources!)
+make cdk-destroy ENV=DEV
+```
+
+### Environment Configuration
+
+Update `config.yaml` with your AWS account ID before deploying:
+
+```yaml
+DEV:
+  account: "123456789012"  # Replace with your AWS account ID
+  region: "us-east-1"
+```
 
 ## Features
 
