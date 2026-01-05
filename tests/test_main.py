@@ -2,7 +2,7 @@
 
 import pytest
 
-from brighthive_testing_cdk.main import main
+from brighthive_loadstress_cdk.main import main
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for BrightHive Testing Infrastructure CDK."""
+"""Shared pytest fixtures for BrightHive Loadstress Infrastructure CDK."""
 
 import pytest
 from typing import AsyncGenerator
@@ -37,10 +37,10 @@ def event_loop():
 def reset_environment(monkeypatch) -> None:
     """Reset environment variables and settings cache for each test."""
     # Clear settings cache to prevent test pollution
-    from brighthive_testing_cdk.settings import get_settings
+    from brighthive_loadstress_cdk.settings import get_settings
     get_settings.cache_clear()
     # Add any environment variables that should be reset between tests
-    monkeypatch.setenv("TESTING", "true")
+    monkeypatch.setenv("LOADSTRESS", "true")
 
 
 @pytest.fixture

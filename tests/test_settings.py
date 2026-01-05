@@ -7,13 +7,13 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 import pytest
 from pydantic import ValidationError
 
-from brighthive_testing_cdk.config import (
+from brighthive_loadstress_cdk.config import (
     CacheConfig,
     Environment,
     LogLevel,
     Settings,
 )
-from brighthive_testing_cdk.settings import get_settings
+from brighthive_loadstress_cdk.settings import get_settings
 
 
 class TestSettings:
@@ -25,7 +25,7 @@ class TestSettings:
         assert settings.environment == Environment.DEVELOPMENT
         assert settings.debug is False
         assert settings.log_level == LogLevel.INFO
-        assert settings.app_name == "BrightHive Testing Infrastructure CDK"
+        assert settings.app_name == "BrightHive Loadstress Infrastructure CDK"
         assert settings.app_version == "0.1.0"
 
     def test_settings_from_env_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -134,21 +134,21 @@ class TestSettings:
         settings = Settings(environment=Environment.PRODUCTION)
         assert settings.is_production is True
         assert settings.is_development is False
-        assert settings.is_testing is False
+        assert settings.is_loadstress is False
 
     def test_is_development_property(self) -> None:
         """Test is_development property."""
         settings = Settings(environment=Environment.DEVELOPMENT)
         assert settings.is_production is False
         assert settings.is_development is True
-        assert settings.is_testing is False
+        assert settings.is_loadstress is False
 
-    def test_is_testing_property(self) -> None:
-        """Test is_testing property."""
-        settings = Settings(environment=Environment.TESTING)
+    def test_is_loadstress_property(self) -> None:
+        """Test is_loadstress property."""
+        settings = Settings(environment=Environment.LOADSTRESS)
         assert settings.is_production is False
         assert settings.is_development is False
-        assert settings.is_testing is True
+        assert settings.is_loadstress is True
 
     def test_model_dump_safe_redacts_secrets(self) -> None:
         """Test that model_dump_safe redacts sensitive information."""
@@ -238,7 +238,7 @@ class TestEnvironmentEnum:
         assert Environment.DEVELOPMENT.value == "development"
         assert Environment.STAGING.value == "staging"
         assert Environment.PRODUCTION.value == "production"
-        assert Environment.TESTING.value == "testing"
+        assert Environment.LOADSTRESS.value == "loadstress"
 
 
 class TestLogLevelEnum:

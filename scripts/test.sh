@@ -1,35 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# BrightAgent CDK Test Runner
+# Runs pytest with configurable coverage options
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+cd "$PROJECT_ROOT"
+
+# Check if running in venv
+if [[ -z "${VIRTUAL_ENV:-}" ]]; then
+    echo "⚠️  Warning: Not running in a virtual environment"
+    echo "   Activate .venv first: source .venv/bin/activate"
+    exit 1
+fi
+
 # Parse arguments
-COVERAGE=true
-VERBOSE=""
+NO_COV=false
+if [[ "${1:-}" == "--no-cov" ]]; then
+    NO_COV=true
+fi
 
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --no-cov)
-            COVERAGE=false
-            shift
-            ;;
-        -v|--verbose)
-            VERBOSE="-vv"
-            shift
-            ;;
-        *)
-            echo "Unknown option: $1"
-            echo "Usage: $0 [--no-cov] [-v|--verbose]"
-            exit 1
-            ;;
-    esac
-done
-
-echo "🧪 Running tests for BrightHive Testing Infrastructure CDK"
+echo "🧪 Running tests..."
+echo "   Project: brighthive_loadstress_cdk"
+echo "   Coverage: $([[ $NO_COV == true ]] && echo 'disabled' || echo 'enabled')"
 echo ""
 
-if [ "$COVERAGE" = true ]; then
-    pytest $VERBOSE --cov=brighthive_testing_cdk --cov-report=term-missing --cov-report=html
-    echo ""
-    echo "📊 Coverage report generated in htmlcov/index.html"
+if [[ $NO_COV == true ]]; then
+    # Fast test run without coverage
+    uv run pytest tests/ -v
 else
-    pytest $VERBOSE
+    # Full test run with coverage report
+    uv run pytest tests/ \
+        --cov=brighthive_loadstress_cdk \
+        --cov-report=term-missing \
+        --cov-report=html \
+        -v
+
+    echo ""
+    echo "✓ Coverage report generated: htmlcov/index.html"
 fi

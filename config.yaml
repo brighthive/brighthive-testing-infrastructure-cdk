@@ -1,73 +1,45 @@
-# Environment Configuration for BrightBot Testing Infrastructure
-# Supports: DEV, STAGING, PROD
+# LOADSTRESS Environment Configuration
+# Purpose: Dedicated stress/load loadstress infrastructure for production scenarios
+# Separate environment for loadstress at scale
 
-DEV:
-  account: "TBD"  # AWS account ID - UPDATE THIS
-  region: "us-east-1"
+# Deployment modes: subset (small/cheap), full (production-scale)
+deployment_mode: "subset"  # Change to "full" for production-scale deployment
 
-  vpc:
-    cidr: "10.50.0.0/16"
-    max_azs: 3
-    nat_gateways: 1  # Cost optimization
-
-  data_lake:
-    bucket_prefix: "brightbot-test"
-    retention_days: 30
-
-  redshift:
-    node_type: "ra3.xlplus"
-    number_of_nodes: 2
-    database_name: "brightbot_test"
-    master_username: "admin"
-
-  ecs:
-    max_task_count: 1000
-    cpu: 2048
-    memory: 4096
-
-  emr:
-    release_label: "emr-7.0.0"
-    instance_type: "c6i.4xlarge"
-    instance_count: 10
-
-  cost_tracking:
-    daily_report_enabled: true
-    slack_webhook_ssm_key: "/brightbot/testing/slack-webhook"
-
-  tags:
-    Project: "brightbot-testing"
-    Environment: "dev"
-    ManagedBy: "cdk"
-    CostCenter: "engineering"
-    Lifecycle: "persistent"
-    JiraTicket: "BH-107"
-
-STAGING:
-  account: "TBD"  # AWS account ID - UPDATE THIS
-  region: "us-east-1"
+LOADSTRESS:
+  account: "824267124830"  # brightagent-loadstress account
+  region: "us-west-2"  # Oregon - better pricing than us-east-1
 
   vpc:
     cidr: "10.51.0.0/16"
     max_azs: 3
     nat_gateways: 2
 
+  data_lake:
+    bucket_prefix: "brightagent-loadstress"
+    retention_days: 30
+
+  redshift:
+    node_type: "ra3.xlplus"
+    # number_of_nodes controlled by deployment_mode (subset=1, full=2)
+    database_name: "brightagent_loadstress"
+    master_username: "admin"
+    # master_password loaded from REDSHIFT_MASTER_PASSWORD environment variable
+
+  emr:
+    release_label: "emr-7.0.0"
+    instance_type: "c6i.4xlarge"
+    # Resources controlled by deployment_mode
+    # SUBSET: 2 workers × 16vCPU × 64GB = 128GB total (~$10/day)
+    # FULL: 20 workers × 32vCPU × 128GB = 2.5TB total (~$180/day)
+
+  monitoring:
+    alarm_email: "kuri@brighthive.io"  # Email for CloudWatch alarm notifications
+    log_retention_days: 7
+    enable_container_insights: true
+
   tags:
-    Project: "brightbot-testing"
-    Environment: "staging"
+    Project: "brightagent-loadstress"
+    Environment: "loadstress"
     ManagedBy: "cdk"
     JiraTicket: "BH-107"
-
-PROD:
-  account: "TBD"  # AWS account ID - UPDATE THIS
-  region: "us-east-1"
-
-  vpc:
-    cidr: "10.52.0.0/16"
-    max_azs: 3
-    nat_gateways: 3
-
-  tags:
-    Project: "brightbot-testing"
-    Environment: "prod"
-    ManagedBy: "cdk"
-    JiraTicket: "BH-107"
+    Purpose: "stress-load-testing"
