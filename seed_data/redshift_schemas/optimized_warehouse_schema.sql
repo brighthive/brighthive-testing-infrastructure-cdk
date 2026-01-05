@@ -15,15 +15,16 @@ DROP TABLE IF EXISTS customers CASCADE;
 
 CREATE TABLE customers (
     customer_id VARCHAR(20) NOT NULL PRIMARY KEY,
-    customer_name VARCHAR(200) NOT NULL,
+    company_name VARCHAR(200) NOT NULL,
     segment VARCHAR(20) NOT NULL,
     industry VARCHAR(50),
+    num_employees BIGINT,
     annual_revenue BIGINT,
-    employee_count INTEGER,
-    created_date DATE,
-    last_updated TIMESTAMP,
+    lifetime_value DECIMAL(38,6),
     region VARCHAR(50),
-    country VARCHAR(50)
+    state VARCHAR(50),
+    status VARCHAR(20),
+    created_at DATE
 )
 DISTSTYLE ALL  -- Replicate small dimension across all nodes
 SORTKEY (customer_id);  -- Sort by primary key for efficient lookups
@@ -39,11 +40,8 @@ CREATE TABLE products (
     product_id VARCHAR(20) NOT NULL PRIMARY KEY,
     product_name VARCHAR(200) NOT NULL,
     category VARCHAR(50) NOT NULL,
-    subcategory VARCHAR(50),
-    unit_price DECIMAL(10,2),
-    cost DECIMAL(10,2),
-    supplier VARCHAR(100),
-    created_date DATE
+    inventory_quantity INTEGER,
+    unit_price BIGINT
 )
 DISTSTYLE ALL  -- Replicate small dimension across all nodes
 SORTKEY (category, product_id);  -- Compound sort for category queries
@@ -58,23 +56,14 @@ DROP TABLE IF EXISTS orders CASCADE;
 CREATE TABLE orders (
     order_id VARCHAR(30) NOT NULL PRIMARY KEY,
     customer_id VARCHAR(20) NOT NULL,
-    product_id VARCHAR(20) NOT NULL,
     order_date DATE NOT NULL,
     order_timestamp TIMESTAMP NOT NULL,
-    quantity INTEGER NOT NULL,
-    unit_price DECIMAL(10,2) NOT NULL,
-    discount_percent DECIMAL(5,2),
-    order_amount DECIMAL(12,2) NOT NULL,
-    tax_amount DECIMAL(12,2),
-    total_amount DECIMAL(12,2) NOT NULL,
+    order_amount DECIMAL(24,2) NOT NULL,
     status VARCHAR(20),
-    shipping_cost DECIMAL(8,2),
-    payment_method VARCHAR(30),
-    order_priority VARCHAR(10),
+    days_to_fulfill BIGINT,
 
     -- Foreign keys (not enforced in Redshift, for documentation only)
-    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
-    FOREIGN KEY (product_id) REFERENCES products(product_id)
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
 )
 DISTKEY (customer_id)  -- Distribute by customer_id for co-located joins with customers table
 SORTKEY (order_date, customer_id);  -- Compound sort: time-series queries first, then customer lookups
@@ -95,11 +84,12 @@ CREATE TABLE multi_source_entities (
     last_name VARCHAR(100),
     email VARCHAR(200),
     phone VARCHAR(30),
-    annual_revenue BIGINT,
-    employee_count INTEGER,
+    annual_revenue DECIMAL(24,2),
+    employee_count BIGINT,
     created_date DATE,
     created_date_str VARCHAR(20),
-    last_updated TIMESTAMP,
+    last_updated DATE,
+    has_conflict BOOLEAN,
     conflict_type VARCHAR(20),
 
     PRIMARY KEY (record_id, source)
@@ -142,28 +132,28 @@ COMMENT ON TABLE multi_source_entities IS 'Multi-source data with realistic conf
 -- ========================================
 
 -- Time-series aggregation (uses SORTKEY on order_date)
--- SELECT order_date, COUNT(*), SUM(total_amount)
+-- SELECT order_date, COUNT(*), SUM(order_amount)
 -- FROM orders
 -- WHERE order_date BETWEEN '2020-01-01' AND '2023-12-31'
 -- GROUP BY order_date
 -- ORDER BY order_date;
 
 -- Customer revenue analysis (uses DISTKEY on customer_id)
--- SELECT c.customer_name, c.segment, COUNT(o.order_id), SUM(o.total_amount)
+-- SELECT c.company_name, c.segment, COUNT(o.order_id), SUM(o.order_amount)
 -- FROM customers c
 -- JOIN orders o ON c.customer_id = o.customer_id
 -- WHERE o.order_date >= '2023-01-01'
--- GROUP BY c.customer_name, c.segment
--- ORDER BY SUM(o.total_amount) DESC
+-- GROUP BY c.company_name, c.segment
+-- ORDER BY SUM(o.order_amount) DESC
 -- LIMIT 100;
 
 -- Product category performance (dimension replicated for fast joins)
--- SELECT p.category, COUNT(o.order_id), SUM(o.total_amount)
+-- SELECT p.category, COUNT(o.order_id), SUM(o.order_amount)
 -- FROM products p
 -- JOIN orders o ON p.product_id = o.product_id
 -- WHERE o.order_date BETWEEN '2023-01-01' AND '2023-12-31'
 -- GROUP BY p.category
--- ORDER BY SUM(o.total_amount) DESC;
+-- ORDER BY SUM(o.order_amount) DESC;
 
 -- Multi-source conflict resolution (uses SORTKEY on entity_id, source, last_updated)
 -- SELECT entity_id, source, first_name, last_name, last_updated

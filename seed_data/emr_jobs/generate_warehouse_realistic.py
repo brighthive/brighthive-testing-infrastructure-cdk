@@ -145,10 +145,10 @@ def generate_customers(spark: SparkSession, num_customers: int) -> DataFrame:
     # Weighted toward recent years (2020-2024)
     df = df.withColumn(
         "created_at",
-        when(col("id") % 100 < 40, expr("date_add('2024-01-01', -(id % 365))"))  # 40% in 2024
-        .when(col("id") % 100 < 70, expr("date_add('2023-01-01', -(id % 365))"))  # 30% in 2023
-        .when(col("id") % 100 < 90, expr("date_add('2022-01-01', -(id % 365))"))  # 20% in 2022
-        .otherwise(expr("date_add('2021-01-01', -(id % 365))"))  # 10% in 2021
+        when(col("id") % 100 < 40, expr("date_add('2024-01-01', -cast((id % 365) as int))"))  # 40% in 2024
+        .when(col("id") % 100 < 70, expr("date_add('2023-01-01', -cast((id % 365) as int))"))  # 30% in 2023
+        .when(col("id") % 100 < 90, expr("date_add('2022-01-01', -cast((id % 365) as int))"))  # 20% in 2022
+        .otherwise(expr("date_add('2021-01-01', -cast((id % 365) as int))"))  # 10% in 2021
     )
 
     # Customer status - correlated with age and activity

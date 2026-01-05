@@ -116,12 +116,12 @@ def generate_base_entities(spark: SparkSession, num_entities: int) -> DataFrame:
 
     df = df.withColumn(
         "created_date",
-        expr("date_add('2020-01-01', (id * 7) % 1460)")  # Spread over 4 years
+        expr("date_add('2020-01-01', cast((id * 7) % 1460 as int))")  # Spread over 4 years
     )
 
     df = df.withColumn(
         "last_updated",
-        expr("date_add(created_date, (id * 11) % 365)")  # Updated within a year of creation
+        expr("date_add(created_date, cast((id * 11) % 365 as int))")  # Updated within a year of creation
     )
 
     return df.select(
@@ -164,29 +164,34 @@ def apply_source_conflicts(
     )
 
     # Conflict indicator (based on source quality)
+    # Use hash of entity_id for deterministic randomness
     quality_threshold = int(source_quality * 100)
     df = df.withColumn(
         "has_conflict",
-        col("id") % 100 >= quality_threshold
+        expr(f"abs(hash(entity_id)) % 100") >= quality_threshold
     )
 
     # Conflict type distribution (among records with conflicts)
     # 40% name, 30% measure, 20% date, 10% other
     df = df.withColumn(
         "conflict_type",
-        when(~col("has_conflict"), lit("none"))
-        .when(col("id") % 10 < 4, lit("name"))      # 40%
-        .when(col("id") % 10 < 7, lit("measure"))   # 30%
-        .when(col("id") % 10 < 9, lit("date"))      # 20%
-        .otherwise(lit("other"))                     # 10%
+        expr("""
+            CASE
+                WHEN has_conflict = false THEN 'none'
+                WHEN has_conflict = true AND abs(hash(entity_id)) % 10 < 4 THEN 'name'
+                WHEN has_conflict = true AND abs(hash(entity_id)) % 10 < 7 THEN 'measure'
+                WHEN has_conflict = true AND abs(hash(entity_id)) % 10 < 9 THEN 'date'
+                ELSE 'other'
+            END
+        """)
     )
 
     # Apply name variations (realistic patterns)
     df = df.withColumn(
         "first_name",
         when(col("conflict_type") == "name",
-             when(source_name == "A", substring(col("first_name"), 1, 1))  # "J" instead of "John"
-             .when(source_name == "B", upper(col("first_name")))           # "JOHN" instead of "John"
+             when(col("source") == "A", substring(col("first_name"), 1, 1))  # "J" instead of "John"
+             .when(col("source") == "B", upper(col("first_name")))           # "JOHN" instead of "John"
              .otherwise(col("first_name")))  # Source C keeps it correct
         .otherwise(col("first_name"))
     )
@@ -194,8 +199,8 @@ def apply_source_conflicts(
     df = df.withColumn(
         "last_name",
         when(col("conflict_type") == "name",
-             when(source_name == "A", col("last_name"))  # Keep as is
-             .when(source_name == "B", upper(col("last_name")))  # "SMITH" instead of "Smith"
+             when(col("source") == "A", col("last_name"))  # Keep as is
+             .when(col("source") == "B", upper(col("last_name")))  # "SMITH" instead of "Smith"
              .otherwise(lower(col("last_name"))))  # "smith" instead of "Smith"
         .otherwise(col("last_name"))
     )
@@ -204,8 +209,8 @@ def apply_source_conflicts(
     df = df.withColumn(
         "email",
         when(col("conflict_type") == "other",
-             when(source_name == "A", regexp_replace(col("email"), "@company.com", "@company.org"))
-             .when(source_name == "B", upper(col("email")))
+             when(col("source") == "A", regexp_replace(col("email"), "@company.com", "@company.org"))
+             .when(col("source") == "B", upper(col("email")))
              .otherwise(col("email")))
         .otherwise(col("email"))
     )
@@ -214,8 +219,8 @@ def apply_source_conflicts(
     df = df.withColumn(
         "phone",
         when(col("conflict_type") == "other",
-             when(source_name == "A", regexp_replace(col("phone"), "-", "."))  # 555.123.4567
-             .when(source_name == "B", regexp_replace(col("phone"), "-", ""))  # 5551234567
+             when(col("source") == "A", regexp_replace(col("phone"), "-", "."))  # 555.123.4567
+             .when(col("source") == "B", regexp_replace(col("phone"), "-", ""))  # 5551234567
              .otherwise(col("phone")))  # 555-123-4567
         .otherwise(col("phone"))
     )
@@ -224,8 +229,8 @@ def apply_source_conflicts(
     df = df.withColumn(
         "annual_revenue",
         when(col("conflict_type") == "measure",
-             when(source_name == "A", expr("annual_revenue * 1.05"))  # 5% higher
-             .when(source_name == "B", expr("annual_revenue * 0.95"))  # 5% lower
+             when(col("source") == "A", expr("annual_revenue * 1.05"))  # 5% higher
+             .when(col("source") == "B", expr("annual_revenue * 0.95"))  # 5% lower
              .otherwise(col("annual_revenue")))
         .otherwise(col("annual_revenue"))
     )
@@ -233,8 +238,8 @@ def apply_source_conflicts(
     df = df.withColumn(
         "employee_count",
         when(col("conflict_type") == "measure",
-             when(source_name == "A", expr("employee_count + 5"))  # Off by 5
-             .when(source_name == "B", expr("employee_count - 3"))  # Off by 3
+             when(col("source") == "A", expr("employee_count + 5"))  # Off by 5
+             .when(col("source") == "B", expr("employee_count - 3"))  # Off by 3
              .otherwise(col("employee_count")))
         .otherwise(col("employee_count"))
     )
@@ -243,8 +248,8 @@ def apply_source_conflicts(
     df = df.withColumn(
         "created_date_str",
         when(col("conflict_type") == "date",
-             when(source_name == "A", expr("date_format(created_date, 'MM/dd/yyyy')"))  # US format
-             .when(source_name == "B", expr("date_format(created_date, 'dd-MM-yyyy')"))  # EU format
+             when(col("source") == "A", expr("date_format(created_date, 'MM/dd/yyyy')"))  # US format
+             .when(col("source") == "B", expr("date_format(created_date, 'dd-MM-yyyy')"))  # EU format
              .otherwise(expr("date_format(created_date, 'yyyy-MM-dd')")))  # ISO format
         .otherwise(expr("date_format(created_date, 'yyyy-MM-dd')"))
     )
@@ -265,7 +270,7 @@ def apply_source_conflicts(
         "first_name", "last_name", "email", "phone",
         "annual_revenue", "employee_count",
         "created_date", "created_date_str", "last_updated",
-        "conflict_type"
+        "has_conflict", "conflict_type"
     )
 
 
