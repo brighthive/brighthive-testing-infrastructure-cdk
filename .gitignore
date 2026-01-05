@@ -90,9 +90,12 @@ temp/
 # CI/CD
 .github/workflows/*.secrets
 
-# Docker
-.dockerignore
-
+# CDK
+cdk.out/
+*.js.map
+*.d.ts
+node_modules/
+cdk-outputs.json
 
 # Project specific
 data/
