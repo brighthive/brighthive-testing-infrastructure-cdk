@@ -40,8 +40,8 @@ CREATE TABLE products (
     product_id VARCHAR(20) NOT NULL PRIMARY KEY,
     product_name VARCHAR(200) NOT NULL,
     category VARCHAR(50) NOT NULL,
-    inventory_quantity INTEGER,
-    unit_price BIGINT
+    unit_price BIGINT,
+    inventory_quantity INTEGER
 )
 DISTSTYLE ALL  -- Replicate small dimension across all nodes
 SORTKEY (category, product_id);  -- Compound sort for category queries
@@ -56,7 +56,6 @@ DROP TABLE IF EXISTS orders CASCADE;
 CREATE TABLE orders (
     order_id VARCHAR(30) NOT NULL PRIMARY KEY,
     customer_id VARCHAR(20) NOT NULL,
-    order_date DATE NOT NULL,
     order_timestamp TIMESTAMP NOT NULL,
     order_amount DECIMAL(24,2) NOT NULL,
     status VARCHAR(20),
@@ -66,7 +65,7 @@ CREATE TABLE orders (
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
 )
 DISTKEY (customer_id)  -- Distribute by customer_id for co-located joins with customers table
-SORTKEY (order_date, customer_id);  -- Compound sort: time-series queries first, then customer lookups
+SORTKEY (order_timestamp, customer_id);  -- Compound sort: time-series queries first, then customer lookups
 
 COMMENT ON TABLE orders IS 'Orders fact table - distributed by customer_id, sorted by order_date for time-series queries';
 
